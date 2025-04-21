@@ -1,3 +1,9 @@
+# project specifics
+.package-lock.json
+hwaddressv0.ts
+sandbox/*
+.*_
+
 # Logs
 logs
 *.log
