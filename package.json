@@ -1,5 +1,5 @@
 {
-  "name": "hwaddr",
+  "name": "hwaddress",
   "version": "1.0.0",
   "main": "dist/hwaddress.js",
   "types": "dist/hwaddress.d.ts",
