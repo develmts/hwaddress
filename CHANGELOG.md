@@ -1,5 +1,11 @@
 # hwaddress
 
+## 1.3.0
+
+### Minor Changes
+
+- 8fae738: revamped the build completely
+
 ## 1.2.0
 
 ### Minor Changes
