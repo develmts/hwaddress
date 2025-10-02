@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "timestamp": "2025-10-02T12:11:31.096Z",
+    "node": "v22.12.0",
+    "platform": "win32-x64",
+    "commit": "a35b1ca"
+  },
+  "tasks": [
+    {
+      "label": "new HwAddress(canon48)",
+      "iters": 200000,
+      "totalMs": 1473.022,
+      "nsPerOp": 7365.1,
+      "opsPerSec": 135775
+    },
+    {
+      "label": "new HwAddress(packed48)",
+      "iters": 200000,
+      "totalMs": 1075.311,
+      "nsPerOp": 5376.6,
+      "opsPerSec": 185993
+    },
+    {
+      "label": "new HwAddress(number48, 48)",
+      "iters": 200000,
+      "totalMs": 950.505,
+      "nsPerOp": 4752.5,
+      "opsPerSec": 210414
+    },
+    {
+      "label": "canonicalToPacked(48)",
+      "iters": 500000,
+      "totalMs": 359.354,
+      "nsPerOp": 718.7,
+      "opsPerSec": 1391387
+    },
+    {
+      "label": "packedToCanonical(48)",
+      "iters": 500000,
+      "totalMs": 440.173,
+      "nsPerOp": 880.3,
+      "opsPerSec": 1135918
+    },
+    {
+      "label": "canonToNumeric(48)",
+      "iters": 500000,
+      "totalMs": 629.746,
+      "nsPerOp": 1259.5,
+      "opsPerSec": 793970
+    },
+    {
+      "label": "packedToNumeric(48)",
+      "iters": 500000,
+      "totalMs": 218.11,
+      "nsPerOp": 436.2,
+      "opsPerSec": 2292418
+    },
+    {
+      "label": "format('canonical')",
+      "iters": 300000,
+      "totalMs": 2382.66,
+      "nsPerOp": 7942.2,
+      "opsPerSec": 125910
+    },
+    {
+      "label": "compareTo (a<b)",
+      "iters": 500000,
+      "totalMs": 6015.244,
+      "nsPerOp": 12030.5,
+      "opsPerSec": 83122
+    },
+    {
+      "label": "new HwAddress(canon64)",
+      "iters": 150000,
+      "totalMs": 1226.817,
+      "nsPerOp": 8178.8,
+      "opsPerSec": 122268
+    },
+    {
+      "label": "canonicalToPacked(64)",
+      "iters": 300000,
+      "totalMs": 286.333,
+      "nsPerOp": 954.4,
+      "opsPerSec": 1047731
+    },
+    {
+      "label": "packedToCanonical(64)",
+      "iters": 300000,
+      "totalMs": 331.777,
+      "nsPerOp": 1105.9,
+      "opsPerSec": 904222
+    }
+  ]
+}
