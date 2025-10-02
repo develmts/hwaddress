@@ -9,7 +9,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",                     // nadiu (no cal nyc/c8)
       reportsDirectory: "coverage",       // carpeta de sortida
-      reporter: ["text", "html", "lcov"], // consola + informe HTML + lcov
+      reporter: ["text", "html", "lcov", "json-summary"], // consola + informe HTML + lcov
       all: true,                          // mesura encara que no s’hagin importat
       include: ["src/**/*.{ts,js}"],      // arxius a mesurar
       exclude: [
