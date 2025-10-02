@@ -1,4 +1,7 @@
 ![CI](https://github.com/develmts/hwaddress/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/develmts/hwaddress/main/badges/coverage.json)
+
+
 
 
 

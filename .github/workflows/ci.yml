@@ -13,7 +13,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # experimental=true jobs doesn't  fail whole l workflow
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
@@ -23,6 +22,9 @@ jobs:
         include:
           - node: 24
             experimental: true
+
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -34,7 +36,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
 
-      - name: Install deps (clean)
+      - name: Install deps
         run: npm ci
 
       - name: Run tests + coverage (Vitest)
@@ -47,3 +49,23 @@ jobs:
           name: coverage-node${{ matrix.node }}
           path: coverage
           if-no-files-found: ignore
+
+      # Badge de coverage “self-hosted” via endpoint JSON per a shields.io
+      - name: Build coverage endpoint JSON (lines %)
+        if: matrix.experimental == false
+        run: |
+          node -e "const s=require('./coverage/coverage-summary.json');\
+          const pct=s.total.lines.pct||0; \
+          const color=pct>=95?'brightgreen':pct>=90?'green':pct>=80?'yellowgreen':pct>=70?'yellow':'orange'; \
+          const badge={schemaVersion:1,label:'coverage',message:pct.toFixed(1)+'%',color}; \
+          require('fs').mkdirSync('badges',{recursive:true}); \
+          require('fs').writeFileSync('badges/coverage.json', JSON.stringify(badge));"
+
+      - name: Commit coverage endpoint JSON
+        if: github.ref == 'refs/heads/main' && matrix.experimental == false
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add badges/coverage.json
+          git commit -m "chore: update coverage endpoint [skip ci]" || echo "No changes"
+          git push
