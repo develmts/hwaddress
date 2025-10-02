@@ -1,3 +1,7 @@
+![CI](https://github.com/develmts/hwaddress/actions/workflows/ci.yml/badge.svg)
+
+
+
 # hwaddress
 
 A tiny, dependency-free TypeScript/Node.js library to parse, normalize and work with hardware addresses (EUI/MAC) in **40/48/56/64 bits**.  
