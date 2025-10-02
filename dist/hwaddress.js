@@ -1,4 +1,4 @@
-"use strict";
+//import {getOUI} from "./ieee.js"
 var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
@@ -11,9 +11,77 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _HwAddress_instances, _a, _HwAddress_canon, _HwAddress_packed, _HwAddress_addr, _HwAddress_length, _HwAddress_validFormatCache, _HwAddress_aliasFormatCache, _HwAddress_assertComparable;
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EUI64 = exports.EUI48 = exports.HwAddress = void 0;
-class HwAddress {
+import fs from "fs";
+import readline from "readline";
+import got from 'got';
+const IEEE_OUI = "https://gist.githubusercontent.com/gildardoperez/eb73712613587358665916d8fa71f9d7/raw/416d767a9ef6379b55dc95aa406856287d395855/ieee-oui.txt";
+const defURL = IEEE_OUI;
+const defPath = "./ieee-oui.txt";
+const defList = [defURL, defPath];
+function OUIgetStream(loc) {
+    let opts = defList;
+    let stream = {};
+    if (loc && loc != "")
+        opts = [loc, ...defList];
+    for (const src of opts) {
+        try {
+            if (src.indexOf(":") != -1) {
+                stream = got.stream(src);
+            }
+            else {
+                if (!fs.existsSync(src))
+                    throw new Error(src + " doesn't exists");
+                stream = fs.createReadStream(src);
+            }
+        }
+        catch (err) {
+            continue;
+        }
+    }
+    return stream;
+}
+async function OUIparse(loc = "") {
+    let opts = ["", ""];
+    let stream = OUIgetStream(loc);
+    return new Promise((resolve, reject) => {
+        const aRes = [];
+        let rl = {};
+        // console.log("final stream ", stream.path)
+        try {
+            rl = readline.createInterface({
+                input: stream,
+                crlfDelay: Infinity
+            });
+        }
+        catch (err) {
+            console.log("Unable to create stream", err.msg.split(/\n/)[0]);
+            reject(err);
+        }
+        rl
+            .on('line', (line) => {
+            // strip out comments or parse the line and push it to lineBuffer
+            if (line.charAt(0) != "#") {
+                let parts = line.split("\t");
+                let addr = parts[0].slice(0, 2) + ":" + parts[0].slice(2, 4) + ":" + parts[0].slice(4, 6);
+                aRes.push([addr, parts[1]]);
+            }
+        })
+            .on('close', () => resolve(aRes));
+    });
+}
+let OUITab = [];
+async function getOUI(oui) {
+    if (OUITab.length == 0) {
+        OUITab = await OUIparse();
+    }
+    try {
+        return OUITab.find(e => { return e[0] == oui; })[1];
+    }
+    catch (err) {
+        return "Undefined";
+    }
+}
+export class HwAddress {
     /**
      * Constructs a HardwareAddress from various formats:
      * - string: canonical ("aa:bb:cc")
@@ -36,13 +104,13 @@ class HwAddress {
             __classPrivateFieldSet(this, _HwAddress_length, input.length, "f");
         }
         else if (typeof input === 'string') {
-            if (!input.match(/^([0-9a-f]{2}:)+[0-9a-f]{2}$/i)) {
+            if (!input.match(/^([0-9a-f]{2}[:-])+[0-9a-f]{2}$/i)) {
                 throw new Error('Invalid canonical format');
             }
-            const length = input.split(':').length * 8;
+            const length = input.split(/[:-]/).length * 8;
             __classPrivateFieldSet(this, _HwAddress_length, length, "f");
-            __classPrivateFieldSet(this, _HwAddress_packed, _a.canonicalToPacked(input, length), "f");
-            __classPrivateFieldSet(this, _HwAddress_canon, input.toLowerCase(), "f");
+            __classPrivateFieldSet(this, _HwAddress_canon, input.replace(/[:-]/g, ":").toLowerCase(), "f");
+            __classPrivateFieldSet(this, _HwAddress_packed, _a.canonicalToPacked(__classPrivateFieldGet(this, _HwAddress_canon, "f"), length), "f");
             __classPrivateFieldSet(this, _HwAddress_addr, _a.packedToNumeric(__classPrivateFieldGet(this, _HwAddress_packed, "f"), __classPrivateFieldGet(this, _HwAddress_packed, "f").length > 6), "f");
         }
         else if (input instanceof Uint8Array) {
@@ -161,8 +229,23 @@ class HwAddress {
      * the organizational unit of this addresss
      */
     oui() {
-        const oui = _a.canonicalToPacked(__classPrivateFieldGet(this, _HwAddress_canon, "f"), 24);
-        return new _a(oui);
+        // return new HwAddress(this.addr, 24)
+        // const oui = HwAddress.packedToCanonical(
+        //   HwAddress.canonicalToPacked(this.#canon, 24)
+        // )
+        const oui = __classPrivateFieldGet(this, _HwAddress_canon, "f").slice(0, 8);
+        return new _a(oui, 24);
+    }
+    /**
+     *
+     * @returns a string with the organization name if any or
+     * "Undefined" if none it's associated with this oui
+     */
+    async ouiData(oui = "") {
+        if (!oui || oui == "") {
+            oui = __classPrivateFieldGet(this.oui(), _HwAddress_canon, "f");
+        }
+        return await getOUI(oui.toUpperCase());
     }
     /**
     * Checks if another HardwareAddress is equal to this one.
@@ -219,7 +302,7 @@ class HwAddress {
      * Compares current address to a nother one  numerically.
      * @returns -1 if a < b, 1 if a > b, 0 if equal
      */
-    comparetTo(other) {
+    compareTo(other) {
         if (this.length !== other.length) {
             throw new Error(`Cannot compare addresses of different lengths: ${this.length} vs ${other.length}`);
         }
@@ -254,17 +337,23 @@ class HwAddress {
         return new Uint8Array(parts);
     }
     static packedToCanonical(packed) {
+        // console.log("convert from:", packed)
         return Array.from(packed)
-            .map(b => b.toString(16).padStart(2, '0'))
+            .map((b, i) => {
+            // console.log(`ST, |${i}|${b}|`)
+            return b.toString(16).padStart(2, '0');
+        })
             .join(':');
     }
     static packedToNumeric(packed, useBigInt = false) {
-        if (useBigInt || packed.length > 6) {
-            return packed.reduce((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
-        }
-        else {
-            return packed.reduce((acc, byte) => (acc << 8) | byte, 0);
-        }
+        // if (useBigInt || packed.length > 6) {
+        //   return packed.reduce<bigint>((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
+        // } else {
+        //   return packed.reduce<number>((acc, byte) => (acc << 8) | byte, 0);
+        // }
+        let res = BigInt(0);
+        res = packed.reduce((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
+        return Number(res);
     }
     static numericToPacked(numeric, length) {
         const byteLength = length / 8;
@@ -281,6 +370,7 @@ class HwAddress {
             }
             for (let i = byteLength - 1; i >= 0; i--) {
                 packed[i] = numeric & 0xff;
+                //console.log("N2P", numeric , packed)
                 numeric = Math.floor(numeric / 256);
             }
         }
@@ -290,10 +380,10 @@ class HwAddress {
         return packed;
     }
     static canonToNumeric(canonical, length, useBigInt = false) {
-        return this.packedToNumeric(this.canonicalToPacked(canonical, length), useBigInt);
+        return _a.packedToNumeric(_a.canonicalToPacked(canonical, length), useBigInt);
     }
     static numericToCanon(numeric, length) {
-        return this.packedToCanonical(this.numericToPacked(numeric, length));
+        return _a.packedToCanonical(_a.numericToPacked(numeric, length));
     }
     /**
      * Compares two HardwareAddress instances numerically.
@@ -319,7 +409,6 @@ class HwAddress {
         return direction === 'desc' ? sorted.reverse() : sorted;
     }
 }
-exports.HwAddress = HwAddress;
 _a = HwAddress, _HwAddress_canon = new WeakMap(), _HwAddress_packed = new WeakMap(), _HwAddress_addr = new WeakMap(), _HwAddress_length = new WeakMap(), _HwAddress_instances = new WeakSet(), _HwAddress_assertComparable = function _HwAddress_assertComparable(other) {
     if (this.length !== other.length) {
         throw new Error(`Cannot compare addresses of different lengths: ${this.length} vs ${other.length}`);
@@ -328,15 +417,13 @@ _a = HwAddress, _HwAddress_canon = new WeakMap(), _HwAddress_packed = new WeakMa
 HwAddress.ALLOWED_SEPARATORS = new Set([':', '-', '.', ' ']);
 _HwAddress_validFormatCache = { value: new Map() };
 _HwAddress_aliasFormatCache = { value: new Map() };
-class EUI48 extends HwAddress {
+export class EUI48 extends HwAddress {
     constructor(addr) {
         super(addr, 48);
     }
 }
-exports.EUI48 = EUI48;
-class EUI64 extends HwAddress {
+export class EUI64 extends HwAddress {
     constructor(addr) {
         super(addr, 64);
     }
 }
-exports.EUI64 = EUI64;

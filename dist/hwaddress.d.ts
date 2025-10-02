@@ -33,6 +33,12 @@ export declare class HwAddress {
      */
     oui(): HwAddress;
     /**
+     *
+     * @returns a string with the organization name if any or
+     * "Undefined" if none it's associated with this oui
+     */
+    ouiData(oui?: string): Promise<string>;
+    /**
     * Checks if another HardwareAddress is equal to this one.
     * @param other - Another HardwareAddress instance.
     * @returns True if equal in length and value.
@@ -71,7 +77,7 @@ export declare class HwAddress {
      * Compares current address to a nother one  numerically.
      * @returns -1 if a < b, 1 if a > b, 0 if equal
      */
-    comparetTo(other: HwAddress): number;
+    compareTo(other: HwAddress): number;
     toJSON(): {
         canonical: string;
         length: number;

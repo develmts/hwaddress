@@ -1,3 +1,81 @@
+//import {getOUI} from "./ieee.js"
+
+import fs from "fs"
+import readline from "readline"
+import got from 'got' 
+
+const IEEE_OUI = "https://gist.githubusercontent.com/gildardoperez/eb73712613587358665916d8fa71f9d7/raw/416d767a9ef6379b55dc95aa406856287d395855/ieee-oui.txt"
+const defURL = IEEE_OUI
+const defPath = "./ieee-oui.txt"
+const defList = [defURL,defPath]
+
+function OUIgetStream(loc: string) : any{
+  let opts: string[] = defList
+  let stream: any = {}
+  if (loc && loc != "")
+    opts = [ loc, ...defList]
+
+  for(const src of opts){
+    try{
+      if (src.indexOf(":") != -1){ 
+        stream = got.stream(src)
+      }else{
+        if (!fs.existsSync(src))
+          throw new Error(src + " doesn't exists")
+        stream = fs.createReadStream(src)
+      }
+    }catch(err){
+      continue
+    }
+  }
+  return stream
+}
+
+
+async function OUIparse(loc:string = ""): Promise<any[]>{
+  let opts: string[] = ["",""]
+  let stream: any = OUIgetStream(loc)  
+  return new Promise((resolve, reject) => {
+    const aRes: any[] = []
+    let rl: any = {}
+    
+    // console.log("final stream ", stream.path)
+    try{
+      rl = readline.createInterface({
+        input: stream,
+        crlfDelay: Infinity
+      });
+    }catch(err:any){
+      console.log("Unable to create stream", err.msg.split(/\n/)[0])
+      reject(err)
+    }
+  
+    rl
+      .on('line', (line : string) => {
+      // strip out comments or parse the line and push it to lineBuffer
+      if (line.charAt(0) != "#"){
+        let parts = line.split("\t")
+        let addr = parts[0].slice(0,2)+":"+parts[0].slice(2,4)+":"+parts[0].slice(4,6)
+        aRes.push([addr, parts[1]])
+      }        
+    })
+      .on('close', () => resolve(aRes));
+  })
+}
+
+let OUITab: any[] = []
+
+async function getOUI(oui: string): Promise<string>{
+  if (OUITab.length == 0){
+    OUITab = await OUIparse()
+  }
+  try{
+    return OUITab.find(e => { return e[0] == oui })[1] 
+  } catch(err){
+    return "Undefined"
+  }
+}
+
 
 export class HwAddress {
 
@@ -29,13 +107,13 @@ export class HwAddress {
       this.#addr = input.addr;
       this.#length = input.length;
     } else if (typeof input === 'string') {
-      if (!input.match(/^([0-9a-f]{2}:)+[0-9a-f]{2}$/i)) {
+      if (!input.match(/^([0-9a-f]{2}[:-])+[0-9a-f]{2}$/i)) {
         throw new Error('Invalid canonical format');
       }
-      const length = input.split(':').length * 8;
+      const length = input.split(/[:-]/).length * 8;
       this.#length = length;
-      this.#packed = HwAddress.canonicalToPacked(input, length);
-      this.#canon = input.toLowerCase();
+      this.#canon = input.replace(/[:-]/g, ":").toLowerCase();
+      this.#packed = HwAddress.canonicalToPacked(this.#canon, length);
       this.#addr = HwAddress.packedToNumeric(this.#packed, this.#packed.length > 6);
     } else if (input instanceof Uint8Array) {
       this.#packed = new Uint8Array(input);
@@ -170,11 +248,28 @@ export class HwAddress {
    * the organizational unit of this addresss
    */
 
-  oui(){
-    const oui = HwAddress.canonicalToPacked(this.#canon, 24)
-    return new HwAddress(oui)
-  }
+  oui(): HwAddress{
+    // return new HwAddress(this.addr, 24)
 
+    // const oui = HwAddress.packedToCanonical(
+    //   HwAddress.canonicalToPacked(this.#canon, 24)
+    // )
+
+    const oui = this.#canon.slice(0,8)
+    return new HwAddress(oui,24)
+  }
+  /**
+   * 
+   * @returns a string with the organization name if any or 
+   * "Undefined" if none it's associated with this oui
+   */
+
+  async ouiData(oui:string = ""): Promise<string> {
+    if (!oui || oui == ""){
+      oui = this.oui().#canon
+    }
+    return await getOUI(oui.toUpperCase()) 
+  }
 
   /**
   * Checks if another HardwareAddress is equal to this one.
@@ -246,7 +341,7 @@ export class HwAddress {
    * Compares current address to a nother one  numerically.
    * @returns -1 if a < b, 1 if a > b, 0 if equal
    */
-  comparetTo(other: HwAddress) : number {
+  compareTo(other: HwAddress) : number {
     if (this.length !== other.length) {
       throw new Error(`Cannot compare addresses of different lengths: ${this.length} vs ${other.length}`);
     }
@@ -274,7 +369,6 @@ export class HwAddress {
   
     return new HwAddress(data.canonical, data.length);
   }
-  
 
   // --- Static Utilities ---
 
@@ -291,23 +385,29 @@ export class HwAddress {
   }
 
   static packedToCanonical(packed: Uint8Array): string {
+    // console.log("convert from:", packed)
     return Array.from(packed)
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b,i) => {
+        // console.log(`ST, |${i}|${b}|`)
+        return b.toString(16).padStart(2, '0')
+      })
       .join(':');
   }
 
   static packedToNumeric(packed: Uint8Array, useBigInt = false): number | bigint {
-    if (useBigInt || packed.length > 6) {
-      return packed.reduce<bigint>((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
-    } else {
-      return packed.reduce<number>((acc, byte) => (acc << 8) | byte, 0);
-    }
+    // if (useBigInt || packed.length > 6) {
+    //   return packed.reduce<bigint>((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
+    // } else {
+    //   return packed.reduce<number>((acc, byte) => (acc << 8) | byte, 0);
+    // }
+    let res = BigInt(0)
+    res = packed.reduce<bigint>((acc, byte) => (acc << 8n) | BigInt(byte), 0n);
+    return Number(res)
   }
 
   static numericToPacked(numeric: number | bigint, length: number): Uint8Array {
     const byteLength = length / 8;
     const packed = new Uint8Array(byteLength);
-
     if (typeof numeric === 'bigint') {
       for (let i = byteLength - 1; i >= 0; i--) {
         packed[i] = Number(numeric & 0xffn);
@@ -319,6 +419,7 @@ export class HwAddress {
       }
       for (let i = byteLength - 1; i >= 0; i--) {
         packed[i] = numeric & 0xff;
+        //console.log("N2P", numeric , packed)
         numeric = Math.floor(numeric / 256);
       }
     } else {
@@ -329,11 +430,11 @@ export class HwAddress {
   }
 
   static canonToNumeric(canonical: string, length: number, useBigInt = false): number | bigint {
-    return this.packedToNumeric(this.canonicalToPacked(canonical, length), useBigInt);
+    return HwAddress.packedToNumeric(HwAddress.canonicalToPacked(canonical, length), useBigInt);
   }
 
   static numericToCanon(numeric: number | bigint, length: number): string {
-    return this.packedToCanonical(this.numericToPacked(numeric, length));
+    return HwAddress.packedToCanonical(HwAddress.numericToPacked(numeric, length));
   }
   
   /**
@@ -361,6 +462,8 @@ export class HwAddress {
   }
 }
 
+
+
 export class EUI48 extends HwAddress{
   constructor(addr: string | number | bigint | Uint8Array | HwAddress) {
     super(addr,48)
@@ -372,3 +475,4 @@ export class EUI64 extends HwAddress{
     super(addr, 64)
   }
 }
+

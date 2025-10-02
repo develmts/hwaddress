@@ -1,6 +1,6 @@
 # project specifics
-.package-lock.json
 hwaddressv0.ts
+*.zip
 sandbox/*
 .*_
 
