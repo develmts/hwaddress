@@ -1,7 +1,7 @@
 {
   "name": "hwaddress",
   "type": "module",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Small utilities to work with hardware (MAC/EUI) addresses.",
   "license": "MIT",
   "keywords": [
@@ -14,9 +14,9 @@
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/cjs/index.js",
   "types": "./dist/hwaddress.d.ts",
-  "exports" : {
+  "exports": {
     ".": {
-      "types" : "./dist/esm/index.d.ts",
+      "types": "./dist/esm/index.d.ts",
       "imports": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     }
@@ -66,7 +66,6 @@
   "dependencies": {
     "got": "^14.4.7"
   },
-
   "bugs": {
     "url": "https://github.com/develmts/hwaddress/issues"
   },

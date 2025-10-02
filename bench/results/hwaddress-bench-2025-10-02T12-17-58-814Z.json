@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "timestamp": "2025-10-02T12:17:58.814Z",
+    "node": "v22.12.0",
+    "platform": "win32-x64",
+    "commit": "a35b1ca"
+  },
+  "tasks": [
+    {
+      "label": "new HwAddress(canon48)",
+      "iters": 200000,
+      "totalMs": 1469.267,
+      "nsPerOp": 7346.3,
+      "opsPerSec": 136122
+    },
+    {
+      "label": "new HwAddress(packed48)",
+      "iters": 200000,
+      "totalMs": 1034.69,
+      "nsPerOp": 5173.4,
+      "opsPerSec": 193295
+    },
+    {
+      "label": "new HwAddress(number48, 48)",
+      "iters": 200000,
+      "totalMs": 890.871,
+      "nsPerOp": 4454.4,
+      "opsPerSec": 224499
+    },
+    {
+      "label": "canonicalToPacked(48)",
+      "iters": 500000,
+      "totalMs": 346.747,
+      "nsPerOp": 693.5,
+      "opsPerSec": 1441974
+    },
+    {
+      "label": "packedToCanonical(48)",
+      "iters": 500000,
+      "totalMs": 448.324,
+      "nsPerOp": 896.6,
+      "opsPerSec": 1115264
+    },
+    {
+      "label": "canonToNumeric(48)",
+      "iters": 500000,
+      "totalMs": 609.754,
+      "nsPerOp": 1219.5,
+      "opsPerSec": 820003
+    },
+    {
+      "label": "packedToNumeric(48)",
+      "iters": 500000,
+      "totalMs": 229.408,
+      "nsPerOp": 458.8,
+      "opsPerSec": 2179526
+    },
+    {
+      "label": "format('canonical')",
+      "iters": 300000,
+      "totalMs": 2454.648,
+      "nsPerOp": 8182.2,
+      "opsPerSec": 122217
+    },
+    {
+      "label": "compareTo (a<b)",
+      "iters": 500000,
+      "totalMs": 6158.956,
+      "nsPerOp": 12317.9,
+      "opsPerSec": 81183
+    },
+    {
+      "label": "new HwAddress(canon64)",
+      "iters": 150000,
+      "totalMs": 1009.964,
+      "nsPerOp": 6733.1,
+      "opsPerSec": 148520
+    },
+    {
+      "label": "canonicalToPacked(64)",
+      "iters": 300000,
+      "totalMs": 245.695,
+      "nsPerOp": 819,
+      "opsPerSec": 1221028
+    },
+    {
+      "label": "packedToCanonical(64)",
+      "iters": 300000,
+      "totalMs": 327.664,
+      "nsPerOp": 1092.2,
+      "opsPerSec": 915571
+    }
+  ]
+}
