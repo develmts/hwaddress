@@ -13,6 +13,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Els job-runs marcats com experimental no fan fallar el workflow
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
@@ -23,6 +24,7 @@ jobs:
           - node: 24
             experimental: true
 
+    # Necessari per commitejar el badge (JSON) a la branca principal
     permissions:
       contents: write
 
@@ -41,6 +43,8 @@ jobs:
 
       - name: Run tests + coverage (Vitest)
         run: npm run test:cov
+        # Recordatori: a vitest.config.ts cal tenir reporter 'json-summary'
+        # coverage: { provider: 'v8', reporter: ['text','html','lcov','json-summary'] }
 
       - name: Upload coverage HTML (artifact)
         if: always()
@@ -50,22 +54,31 @@ jobs:
           path: coverage
           if-no-files-found: ignore
 
-      # Badge de coverage “self-hosted” via endpoint JSON per a shields.io
+      # Genera un endpoint JSON perquè shields.io mostri el badge de coverage
       - name: Build coverage endpoint JSON (lines %)
         if: matrix.experimental == false
         run: |
           node -e "const s=require('./coverage/coverage-summary.json');\
-          const pct=s.total.lines.pct||0; \
+          const pct=s.total?.lines?.pct ?? 0; \
           const color=pct>=95?'brightgreen':pct>=90?'green':pct>=80?'yellowgreen':pct>=70?'yellow':'orange'; \
           const badge={schemaVersion:1,label:'coverage',message:pct.toFixed(1)+'%',color}; \
           require('fs').mkdirSync('badges',{recursive:true}); \
           require('fs').writeFileSync('badges/coverage.json', JSON.stringify(badge));"
 
+      # Commiteja només si hi ha canvis, i només des de Node 22 a main (evita carreres)
       - name: Commit coverage endpoint JSON
-        if: github.ref == 'refs/heads/main' && matrix.experimental == false
+        if: github.ref == 'refs/heads/main' && matrix.experimental == false && matrix.node == 22
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add badges/coverage.json
-          git commit -m "chore: update coverage endpoint [skip ci]" || echo "No changes"
+
+          # Si no hi ha res a commitejar, surt net
+          if git diff --staged --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+
+          git commit -m "chore: update coverage endpoint [skip ci]"
           git push

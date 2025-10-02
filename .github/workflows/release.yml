@@ -1,4 +1,4 @@
-name: version (auto on push)
+name: release (auto version + tag + GH Release)
 
 on:
   push:
@@ -6,56 +6,82 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # per commitejar/push i crear tags
+  contents: write
 
 jobs:
-  version:
+  release:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - name: Install deps
+        run: npm ci
 
-      # 1) Si hi ha changesets pendents, fa el bump i genera CHANGELOG
-      - name: Version packages if pending changesets
+      - name: Check pending changesets and version if any
         id: version
+        shell: bash
         run: |
           if ls .changeset/*.md >/dev/null 2>&1; then
-            echo "has_changesets=true" >> $GITHUB_OUTPUT
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
             npx changeset version
+            git add -A
           else
-            echo "has_changesets=false" >> $GITHUB_OUTPUT
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # 2) Commit & push del bump (evitem bucle amb [skip ci])
       - name: Commit & push version bump
         if: steps.version.outputs.has_changesets == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes after versioning"
+            exit 0
+          fi
+
           git commit -m "chore: version packages [skip ci]"
           git push
 
-      # 3) (Opcional) Crear etiqueta git segons package.json
-      - name: Tag version
+      - name: Read version
+        if: steps.version.outputs.has_changesets == 'true'
+        id: readver
+        run: |
+          echo "pkg_version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag if missing
         if: steps.version.outputs.has_changesets == 'true'
         run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          git tag "v${PKG_VERSION}"
-          git push --tags
+          TAG="${{ steps.readver.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
 
-      # 4) (Opcional) Crear GitHub Release amb l'etiqueta
+      # (Opcional) Build abans del release si vols comprovar que compila
+      - name: Build (optional)
+        if: steps.version.outputs.has_changesets == 'true'
+        run: npm run build --if-present
+
       - name: Create GitHub Release
         if: steps.version.outputs.has_changesets == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.pkg_version }}
+          tag_name: ${{ steps.readver.outputs.tag }}
+          name: ${{ steps.readver.outputs.tag }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,6 +14,10 @@ var _HwAddress_instances, _a, _HwAddress_canon, _HwAddress_packed, _HwAddress_ad
 import fs from "fs";
 import readline from "readline";
 import got from 'got';
+// src/hwaddress.ts
+import { isMulticast, isUnicast, isLocallyAdministered, isUniversallyAdministered, isBroadcast, toEui64FromEui48, toEui48FromEui64IfConvertible, firstByte, flipUlBit, setUlBit, clearUlBit, clearIgBit } from "./semantics.js";
+// (opcional) els re-exportes a través del paquet:
+export { isMulticast, isUnicast, isLocallyAdministered, isUniversallyAdministered, isBroadcast, toEui64FromEui48, toEui48FromEui64IfConvertible, firstByte, flipUlBit, setUlBit, clearUlBit, clearIgBit };
 const IEEE_OUI = "https://gist.githubusercontent.com/gildardoperez/eb73712613587358665916d8fa71f9d7/raw/416d767a9ef6379b55dc95aa406856287d395855/ieee-oui.txt";
 const defURL = IEEE_OUI;
 const defPath = "./ieee-oui.txt";

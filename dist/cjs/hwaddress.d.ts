@@ -1,3 +1,5 @@
+import { isMulticast, isUnicast, isLocallyAdministered, isUniversallyAdministered, isBroadcast, toEui64FromEui48, toEui48FromEui64IfConvertible, firstByte, flipUlBit, setUlBit, clearUlBit, clearIgBit } from "./semantics.js";
+export { isMulticast, isUnicast, isLocallyAdministered, isUniversallyAdministered, isBroadcast, toEui64FromEui48, toEui48FromEui64IfConvertible, firstByte, flipUlBit, setUlBit, clearUlBit, clearIgBit };
 export declare class HwAddress {
     #private;
     static readonly ALLOWED_SEPARATORS: Set<string>;
