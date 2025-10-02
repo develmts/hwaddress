@@ -13,7 +13,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # 👇 fa que els job-runs amb experimental=true no facin fallar el workflow
+    # experimental=true jobs doesn't  fail whole l workflow
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
