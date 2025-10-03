@@ -1,5 +1,11 @@
 # hwaddress
 
+## 1.4.0
+
+### Minor Changes
+
+- 0f00a56: Extracted OUi Mangement. Added the required tests.Revamped again de the build. Minor cleanups
+
 ## 1.3.0
 
 ### Minor Changes
