@@ -11,14 +11,13 @@
     "eui-64",
     "hardware-address"
   ],
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/cjs/index.js",
-  "types": "./dist/hwaddress.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/esm/index.d.ts",
-      "imports": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
@@ -42,10 +41,9 @@
     "patchup": "npm --no-git-tag-version version patch",
     "minorup": "npm --no-git-tag-version version minor",
     "versionup": "npm --no-git-tag-version version patch",
-    "build:esm": "tsc -p tsconfig.build.esm.json",
-    "build:cjs": "tsc -p tsconfig.build.cjs.json && node -e \"require('fs').mkdirSync('dist/cjs',{recursive:true}); require('fs').writeFileSync('dist/cjs/package.json','{\\n  \\\"type\\\": \\\"commonjs\\\"\\n}\\n')\"",
-    "build": "npm run clean && npm run build:esm && npm run build:cjs",
-    "clean": "rimraf dist"
+    "build:shim": "tsc -p tsconfig.build.json && node scripts/make-cjs-shim.js",
+    "clean": "rimraf dist",
+    "build": "npm run clean && npm run build:shim"
   },
   "author": "mtsdevel @ github dot com",
   "repository": {

@@ -11,9 +11,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _HwAddress_instances, _a, _HwAddress_canon, _HwAddress_packed, _HwAddress_addr, _HwAddress_length, _HwAddress_validFormatCache, _HwAddress_aliasFormatCache, _HwAddress_assertComparable;
-import fs from "fs";
-import readline from "readline";
-import got from 'got';
+import { OUIProvider } from "./oui/OUIProvider.js";
 // src/hwaddress.ts
 import { isMulticast, isUnicast, isLocallyAdministered, isUniversallyAdministered, isBroadcast, toEui64FromEui48, toEui48FromEui64IfConvertible, firstByte, flipUlBit, setUlBit, clearUlBit, clearIgBit } from "./semantics.js";
 // (opcional) els re-exportes a través del paquet:
@@ -22,69 +20,65 @@ const IEEE_OUI = "https://gist.githubusercontent.com/gildardoperez/eb73712613587
 const defURL = IEEE_OUI;
 const defPath = "./ieee-oui.txt";
 const defList = [defURL, defPath];
-function OUIgetStream(loc) {
-    let opts = defList;
-    let stream = {};
-    if (loc && loc != "")
-        opts = [loc, ...defList];
-    for (const src of opts) {
-        try {
-            if (src.indexOf(":") != -1) {
-                stream = got.stream(src);
-            }
-            else {
-                if (!fs.existsSync(src))
-                    throw new Error(src + " doesn't exists");
-                stream = fs.createReadStream(src);
-            }
-        }
-        catch (err) {
-            continue;
-        }
-    }
-    return stream;
-}
-async function OUIparse(loc = "") {
-    let opts = ["", ""];
-    let stream = OUIgetStream(loc);
-    return new Promise((resolve, reject) => {
-        const aRes = [];
-        let rl = {};
-        // console.log("final stream ", stream.path)
-        try {
-            rl = readline.createInterface({
-                input: stream,
-                crlfDelay: Infinity
-            });
-        }
-        catch (err) {
-            console.log("Unable to create stream", err.msg.split(/\n/)[0]);
-            reject(err);
-        }
-        rl
-            .on('line', (line) => {
-            // strip out comments or parse the line and push it to lineBuffer
-            if (line.charAt(0) != "#") {
-                let parts = line.split("\t");
-                let addr = parts[0].slice(0, 2) + ":" + parts[0].slice(2, 4) + ":" + parts[0].slice(4, 6);
-                aRes.push([addr, parts[1]]);
-            }
-        })
-            .on('close', () => resolve(aRes));
-    });
-}
-let OUITab = [];
-async function getOUI(oui) {
-    if (OUITab.length == 0) {
-        OUITab = await OUIparse();
-    }
-    try {
-        return OUITab.find(e => { return e[0] == oui; })[1];
-    }
-    catch (err) {
-        return "Undefined";
-    }
-}
+//  
+//   let opts: string[] = defList
+//   let stream: any = {}
+//   if (loc && loc != "")
+//     opts = [ loc, ...defList]
+//   for(const src of opts){
+//     try{
+//       if (src.indexOf(":") != -1){ 
+//         stream = got.stream(src)
+//       }else{
+//         if (!fs.existsSync(src))
+//           throw new Error(src + " doesn't exists")
+//         stream = fs.createReadStream(src)
+//       }
+//     }catch(err){
+//       continue
+//     }
+//   }
+//   return stream
+// }
+// async function OUIparse(loc:string = ""): Promise<any[]>{
+//   let opts: string[] = ["",""]
+//   let stream: any = OUIgetStream(loc)  
+//   return new Promise((resolve, reject) => {
+//     const aRes: any[] = []
+//     let rl: any = {}
+//     // console.log("final stream ", stream.path)
+//     try{
+//       rl = readline.createInterface({
+//         input: stream,
+//         crlfDelay: Infinity
+//       });
+//     }catch(err:any){
+//       console.log("Unable to create stream", err.msg.split(/\n/)[0])
+//       reject(err)
+//     }
+//     rl
+//       .on('line', (line : string) => {
+//       // strip out comments or parse the line and push it to lineBuffer
+//       if (line.charAt(0) != "#"){
+//         let parts = line.split("\t")
+//         let addr = parts[0].slice(0,2)+":"+parts[0].slice(2,4)+":"+parts[0].slice(4,6)
+//         aRes.push([addr, parts[1]])
+//       }        
+//     })
+//       .on('close', () => resolve(aRes));
+//   })
+// }
+// let OUITab: any[] = []
+// async function getOUI(oui: string): Promise<string>{
+//   if (OUITab.length == 0){
+//     OUITab = await OUIparse()
+//   }
+//   try{
+//     return OUITab.find(e => { return e[0] == oui })[1] 
+//   } catch(err){
+//     return "Undefined"
+//   }
+// }
 export class HwAddress {
     /**
      * Constructs a HardwareAddress from various formats:
@@ -246,10 +240,17 @@ export class HwAddress {
      * "Undefined" if none it's associated with this oui
      */
     async ouiData(oui = "") {
-        if (!oui || oui == "") {
-            oui = __classPrivateFieldGet(this.oui(), _HwAddress_canon, "f");
+        const canonical = (oui && oui !== "")
+            ? oui.toUpperCase()
+            : this.oui().canonical.toUpperCase();
+        try {
+            // Prefer full canonical when available to allow future 28/36 strategies
+            const name = await OUIProvider.resolveFromCanonical(canonical);
+            return name ?? "Undefined";
         }
-        return await getOUI(oui.toUpperCase());
+        catch (err) {
+            return "Undefined";
+        }
     }
     /**
     * Checks if another HardwareAddress is equal to this one.
